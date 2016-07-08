@@ -6,6 +6,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by pedro on 08.07.16.
  */
@@ -16,10 +19,12 @@ public class SensorDB extends SQLiteOpenHelper {
     final static String MQ7 = "mq7";
     final static String MQ2 = "mq2";
     final static String MQ135 = "mq135";
-    final static String TEMP = "temp";
+    final static String TEMP = "tmp";
     final static String HUM = "hum";
-    final static String TH_IDX = "th_idx";
+    final static String TH_IDX = "hid";
     final static String _ID = "_id";
+    public List<String> columns = new ArrayList<>();
+
     final static String CREATE_CMD =
             "CREATE TABLE if not exists " + TABLE_NAME + " (" +
             _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -42,6 +47,14 @@ public class SensorDB extends SQLiteOpenHelper {
     public SensorDB(Context context) {
         super(context, NAME, null, VERSION);
         this.mContext = context;
+
+        // set colums list
+        columns.add(MQ7);
+        columns.add(MQ2);
+        columns.add(MQ135);
+        columns.add(TEMP);
+        columns.add(HUM);
+        columns.add(TH_IDX);
     }
 
     public SensorDB open() throws SQLException {

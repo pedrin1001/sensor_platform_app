@@ -1,12 +1,20 @@
 package com.pedro.sensorplatform;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -28,13 +36,14 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int MESSAGE_READ = 2;
     private TextView temp, hum, co, infla, connection;
-    private Button sendButton;
+    private Button sendButton, retryButton;
     public BluetoothAdapter mBluetoothAdapter;
     public Handler mHandler;
     private BluetoothDevice mDevice;
     private ConnectThread mConnectThread;
     private ConnectedThread mConnectedThread;
     private static int counter = 0;
+    private SensorDB mSensorDB;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,24 +57,47 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        retryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                mConnectThread.cancel();
+//                mConnectThread.start();
+            }
+        });
+        startLocation();
+        initDatabase();
         checkBluetooth();
         mHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
                 if (msg.what == MESSAGE_READ) {
-                    Toast.makeText(getApplicationContext(), "message received!", Toast.LENGTH_SHORT);
+                    temp.setText("message read " + counter++);
                     byte[] writeBuf = (byte[]) msg.obj;
                     int begin = msg.arg1;
                     int end = msg.arg2;
                     String writeMessage = new String(writeBuf);
                     writeMessage = writeMessage.substring(begin, end);
-                    counter++;
-                    infla.setText(writeMessage + counter);
+                    String[] sensorObjs = writeMessage.split(",");
+                    infla.setText(writeMessage.replaceAll("\\s+", ""));
+                    for (String obj : sensorObjs) {
+                        obj = obj.replaceAll("\\s+", "");
+                        String[] sensor = obj.split(":");
+                        int index = mSensorDB.columns.indexOf(sensor[0]);
+                        if (index == -1) {
+                            Log.i("parsingERROR", String.valueOf(sensor[0].length()));
+                        } else {
+                            int value = Integer.parseInt(sensor[1]);
+//                            Log.i("parsing", "idx: " + mSensorDB.columns.get(index) + " value: " + value);
+                        }
+                    }
                 }
             }
         };
-        mConnectThread = new ConnectThread(mDevice);
-        mConnectThread.start();
+    }
+
+    private void initDatabase() {
+        mSensorDB = new SensorDB(this);
+        mSensorDB.open();
     }
 
     @Override
@@ -77,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
                 pairWithHC();
             } else {
                 Toast.makeText(this, "please turn on bluetooth!", Toast.LENGTH_SHORT).show();
+                finish();
             }
         }
     }
@@ -88,6 +121,8 @@ public class MainActivity extends AppCompatActivity {
         infla = (TextView) findViewById(R.id.inflamable);
         connection = (TextView) findViewById(R.id.connection);
         sendButton = (Button) findViewById(R.id.send);
+        retryButton = (Button) findViewById(R.id.retry);
+        infla.setBackgroundColor(Color.CYAN);
     }
 
     private void checkBluetooth() {
@@ -115,6 +150,50 @@ public class MainActivity extends AppCompatActivity {
             }
             connection.setText("paired to: " + mDevice.getName()
                     + " [" + mDevice.getAddress() + "]");
+            mConnectThread = new ConnectThread(mDevice);
+            mConnectThread.start();
+        }
+    }
+
+    private void makeUseOfNewLocation(Location location) {
+        co.setText("lat: " + location.getLatitude() + " long:" + location.getLongitude());
+    }
+
+    private void startLocation() {
+        // Acquire a reference to the system Location Manager
+        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+
+        // Define a listener that responds to location updates
+        LocationListener locationListener = new LocationListener() {
+            public void onLocationChanged(Location location) {
+                // Called when a new location is found by the network location provider.
+                makeUseOfNewLocation(location);
+            }
+
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
+            public void onProviderEnabled(String provider) {
+            }
+
+            public void onProviderDisabled(String provider) {
+            }
+        };
+
+        // Register the listener with the Location Manager to receive location updates
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            Toast.makeText(this, "please activate GPS", Toast.LENGTH_SHORT).show();
+            return;
+        } else {
+            Toast.makeText(this, "GPS activated", Toast.LENGTH_SHORT).show();
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0, locationListener);
         }
     }
 
@@ -182,7 +261,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     bytes += mmInStream.read(buffer, bytes, buffer.length - bytes);
                     for(int i = begin; i < bytes; i++) {
-                        if(buffer[i] == "#".getBytes()[0]) {
+                        if(buffer[i] == ";".getBytes()[0]) {
                             mHandler.obtainMessage(MESSAGE_READ, begin, i, buffer).sendToTarget();
                             begin = i + 1;
                             if(i == bytes - 1) {

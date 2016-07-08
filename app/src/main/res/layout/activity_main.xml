@@ -64,4 +64,13 @@
         android:layout_above="@+id/connection"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="126dp" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Retry"
+        android:id="@+id/retry"
+        android:layout_alignTop="@+id/send"
+        android:layout_toRightOf="@+id/send"
+        android:layout_toEndOf="@+id/send" />
 </RelativeLayout>
