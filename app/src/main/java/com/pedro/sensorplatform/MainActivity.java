@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.SQLException;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
@@ -44,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private ConnectedThread mConnectedThread;
     private static int counter = 0;
     private SensorDB mSensorDB;
+    private SensorData currentData;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
                     writeMessage = writeMessage.substring(begin, end);
                     String[] sensorObjs = writeMessage.split(",");
                     infla.setText(writeMessage.replaceAll("\\s+", ""));
+                    currentData = new SensorData((sensorObjs));
                 }
             }
         };
@@ -145,7 +148,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void makeUseOfNewLocation(Location location) {
-        co.setText("lat: " + location.getLatitude() + " long:" + location.getLongitude());
+        if (currentData != null) {
+            co.setText("lat: " + location.getLatitude() + " long:" + location.getLongitude());
+            try {
+                currentData.addLocation(location.getLatitude(), location.getLongitude());
+                mSensorDB.addData(currentData.getValues());
+            } catch (SQLException e) {
+                Log.getStackTraceString(e);
+            }
+        }
     }
 
     private void startLocation() {

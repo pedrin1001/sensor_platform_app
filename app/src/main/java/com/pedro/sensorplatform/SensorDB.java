@@ -1,5 +1,6 @@
 package com.pedro.sensorplatform;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -15,7 +16,7 @@ import java.util.List;
 public class SensorDB extends SQLiteOpenHelper {
     final static String TABLE_NAME = "sensor_data";
     final static String LAT = "lat";
-    final static String LONG = "long";
+    final static String LON = "long";
     final static String MQ7 = "mq7";
     final static String MQ2 = "mq2";
     final static String MQ135 = "mq135";
@@ -23,13 +24,13 @@ public class SensorDB extends SQLiteOpenHelper {
     final static String HUM = "hum";
     final static String TH_IDX = "hid";
     final static String _ID = "_id";
-    public List<String> columns = new ArrayList<>();
+    private static List<String> columns = new ArrayList<>();
 
     final static String CREATE_CMD =
             "CREATE TABLE if not exists " + TABLE_NAME + " (" +
             _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
             LAT + " FLOAT, " +
-            LONG + " FLOAT, " +
+            LON + " FLOAT, " +
             MQ7 + " INTEGER, " +
             MQ2 + " INTEGER, " +
             MQ135 + " INTEGER, " +
@@ -61,6 +62,14 @@ public class SensorDB extends SQLiteOpenHelper {
         mDbHelper = new SensorDB(mContext);
         mDb = mDbHelper.getWritableDatabase();
         return this;
+    }
+
+    public static List<String> getColumns() {
+        return columns;
+    }
+
+    public void addData(ContentValues values) throws SQLException {
+        mDb.insert(SensorDB.TABLE_NAME, null, values);
     }
 
     @Override
