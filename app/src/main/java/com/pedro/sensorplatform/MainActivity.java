@@ -79,17 +79,6 @@ public class MainActivity extends AppCompatActivity {
                     writeMessage = writeMessage.substring(begin, end);
                     String[] sensorObjs = writeMessage.split(",");
                     infla.setText(writeMessage.replaceAll("\\s+", ""));
-                    for (String obj : sensorObjs) {
-                        obj = obj.replaceAll("\\s+", "");
-                        String[] sensor = obj.split(":");
-                        int index = mSensorDB.columns.indexOf(sensor[0]);
-                        if (index == -1) {
-                            Log.i("parsingERROR", String.valueOf(sensor[0].length()));
-                        } else {
-                            int value = Integer.parseInt(sensor[1]);
-//                            Log.i("parsing", "idx: " + mSensorDB.columns.get(index) + " value: " + value);
-                        }
-                    }
                 }
             }
         };
@@ -254,7 +243,7 @@ public class MainActivity extends AppCompatActivity {
             Looper.prepare();
             Log.i("connected thread", "run");
             this.write("*".getBytes());
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[100];
             int begin = 0;
             int bytes = 0;
             while (true) {
@@ -263,14 +252,13 @@ public class MainActivity extends AppCompatActivity {
                     for(int i = begin; i < bytes; i++) {
                         if(buffer[i] == ";".getBytes()[0]) {
                             mHandler.obtainMessage(MESSAGE_READ, begin, i, buffer).sendToTarget();
-                            begin = i + 1;
-                            if(i == bytes - 1) {
-                                bytes = 0;
-                                begin = 0;
-                            }
+                            bytes = 0;
+                            begin = 0;
+                            break;
                         }
                     }
                 } catch (IOException e) {
+                    Log.i("IOE", e.toString());
                     break;
                 }
             }
