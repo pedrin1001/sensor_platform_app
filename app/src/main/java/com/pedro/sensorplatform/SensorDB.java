@@ -16,7 +16,7 @@ import java.util.List;
 public class SensorDB extends SQLiteOpenHelper {
     final static String TABLE_NAME = "sensor_data";
     final static String LAT = "lat";
-    final static String LON = "long";
+    final static String LON = "lon";
     final static String MQ7 = "mq7";
     final static String MQ2 = "mq2";
     final static String MQ135 = "mq135";
