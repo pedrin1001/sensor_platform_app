@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.database.SQLException;
 import android.graphics.Color;
 import android.location.Location;
@@ -36,8 +37,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String HC_06 = "HC-06";
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int MESSAGE_READ = 2;
-    private TextView temp, hum, co, infla, connection;
-    private Button sendButton, retryButton;
+    private TextView temp, infla, connection, showLoc;
+    private Button exportButton;
     public BluetoothAdapter mBluetoothAdapter;
     public Handler mHandler;
     private BluetoothDevice mDevice;
@@ -46,24 +47,24 @@ public class MainActivity extends AppCompatActivity {
     private static int counter = 0;
     private SensorDB mSensorDB;
     private SensorData currentData;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initializeWidgets();
-        sendButton.setOnClickListener(new View.OnClickListener() {
+        exportButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mConnectedThread != null) {
-                    mConnectedThread.write("*".getBytes());
-                }
-            }
-        });
-        retryButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//                mConnectThread.cancel();
-//                mConnectThread.start();
+                Context context = getApplicationContext();
+                Cursor c = mSensorDB.getAllEntries();
+                Log.i("db", String.valueOf(c.getColumnCount()));
+                Log.i("db", String.valueOf(c.getCount()));
+                Log.i("exporting", "clicked");
+                String fileName = SensorDB.TABLE_NAME + ".csv";
+                ExportToCSV exportThread = new ExportToCSV(c, fileName, context, true);
+                exportThread.start();
+                Toast.makeText(context, "exported!", Toast.LENGTH_SHORT);
             }
         });
         startLocation();
@@ -108,12 +109,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeWidgets() {
         temp = (TextView) findViewById(R.id.temperature);
-        hum = (TextView) findViewById(R.id.humidity);
-        co = (TextView) findViewById(R.id.CO);
-        infla = (TextView) findViewById(R.id.inflamable);
-        connection = (TextView) findViewById(R.id.connection);
-        sendButton = (Button) findViewById(R.id.send);
-        retryButton = (Button) findViewById(R.id.retry);
+        infla = (TextView) findViewById(R.id.humidity);
+        connection = (TextView) findViewById(R.id.CO);
+        showLoc = (TextView) findViewById(R.id.location);
+        exportButton = (Button) findViewById(R.id.send);
         infla.setBackgroundColor(Color.CYAN);
     }
 
@@ -149,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void makeUseOfNewLocation(Location location) {
         if (currentData != null) {
-            co.setText("lat: " + location.getLatitude() + " long:" + location.getLongitude());
+            showLoc.setText("lat: " + location.getLatitude() + " long:" + location.getLongitude());
             try {
                 currentData.addLocation(location.getLatitude(), location.getLongitude());
                 mSensorDB.addData(currentData.getValues());
@@ -193,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         } else {
             Toast.makeText(this, "GPS activated", Toast.LENGTH_SHORT).show();
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 5, locationListener);
         }
     }
 

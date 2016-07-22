@@ -2,6 +2,7 @@ package com.pedro.sensorplatform;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -70,6 +71,10 @@ public class SensorDB extends SQLiteOpenHelper {
 
     public void addData(ContentValues values) throws SQLException {
         mDb.insert(SensorDB.TABLE_NAME, null, values);
+    }
+
+    public Cursor getAllEntries() {
+        return mDb.rawQuery("select * from sensor_data", null);
     }
 
     @Override
